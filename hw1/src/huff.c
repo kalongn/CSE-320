@@ -1003,14 +1003,6 @@ int compress() {
  * @return 0 if decompression completes without error, -1 if an error occurs.
  */
 int decompress() {
-    // obtain the block_size from global_options
-    int block_size = determine_block_size_from_global();
-    // check just in case
-    if (block_size != MAX_BLOCK_SIZE) {
-        fprintf(stderr, "Error: Invalid block size %d, block size when decompressing should be within bytes 65536 exactly.", block_size);
-        return -1;
-    }
-
     // Loop until we read EOF
     while (!feof(stdin) && !ferror(stdin)) {
         if (decompress_block() == -1) {
