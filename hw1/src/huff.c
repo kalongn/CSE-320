@@ -803,7 +803,7 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
         character = fgetc(stdin);
         // printf("character: %d, loop_index: %d\n", (unsigned char)character, loop_counter);
         // printf("character: %d\n", (unsigned char)character == 0xff);
-        if ((unsigned char)character == 0xff) {
+        if ((unsigned char)character == 0xff && !ff_before) {
             // printf("ff symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
             ff_before = 1;
             continue;
@@ -913,7 +913,7 @@ int traverse_from_bit_with_huffman() {
             current_bit_offset--;
         }
     } while (!feof(stdin) && !ferror(stdout) && !ferror(stdin));
-    if(!detected_end_block_before_EOB) {
+    if (!detected_end_block_before_EOB) {
         fprintf(stderr, "Did not encounter a path toward EOB symbol.\n");
         return -1;
     }
@@ -957,7 +957,7 @@ int decompress_block() {
 
     int current_index_nodes_symbol = 0;
     identify_leaf_nodes_stack(nodes, &current_index_nodes_symbol);
-
+    // debug("Loop_index: %d\n", current_index_nodes_symbol);
     if (read_leaf_nodes_symbol(current_index_nodes_symbol)) {
         return -1;
     }
