@@ -798,6 +798,7 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
     int character;
     int loop_counter = 0;
     int ff_before = 0;
+    int encountered_end_block = 0;
     while (!feof(stdin) && !ferror(stdin) && loop_counter < amount_of_leafs) {
         character = fgetc(stdin);
         // printf("character: %d, loop_index: %d\n", (unsigned char)character, loop_counter);
@@ -811,6 +812,7 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
             (*(node_for_symbol + loop_counter))->symbol = 256;
             // printf("256 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
             ff_before = 0;
+            encountered_end_block = 1;
         } else if (ff_before) {
             (*(node_for_symbol + loop_counter))->symbol = 255;
             // printf("255 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
@@ -832,6 +834,10 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
 
     if (ff_before) {
         fprintf(stderr, "Error: Encountered 0xff without 0x00 or 0x(XX) after it. Meaning the file was not compressed probably.");
+        return -1;
+    }
+    if (!encountered_end_block) {
+        fprintf(stderr, "Error: Did not encounter end block symbol.");
         return -1;
     }
     return 0;
