@@ -852,7 +852,7 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
  * @return int
  *      -3 indicated a failure, -2 indicated the end of the file, -1 indicated the end of the huffman tree, 0 indicating successful run.
  */
-int node_address_for_traversal(char direction, NODE **root) {
+int node_address_for_traversal(char direction, NODE **root, char *detected_end_block_before_EOB) {
     if (*root == NULL) {
         return -3;
     }
@@ -865,6 +865,7 @@ int node_address_for_traversal(char direction, NODE **root) {
     }
     if ((*root)->left == NULL && (*root)->right == NULL) {
         if ((*root)->symbol == 256) {
+            *detected_end_block_before_EOB = 1;
             return -2;
         }
         fputc((*root)->symbol, stdout);
@@ -882,6 +883,7 @@ int node_address_for_traversal(char direction, NODE **root) {
 int traverse_from_bit_with_huffman() {
     NODE *pointer_to_node = nodes;
     int character;
+    char detected_end_block_before_EOB = 0;
     do {
         character = fgetc(stdin);
         if (character == EOF) {
@@ -896,7 +898,7 @@ int traverse_from_bit_with_huffman() {
             // printf("CURRENT pointer_address: %p \n", pointer_to_node);
             char current_bit = (character >> current_bit_offset) & 0x1;
             // printf("%d -> %p\n", current_bit, pointer_to_node);
-            switch (node_address_for_traversal(current_bit, &pointer_to_node)) {
+            switch (node_address_for_traversal(current_bit, &pointer_to_node, &detected_end_block_before_EOB)) {
             case -3:
                 fprintf(stderr, "Error: Attempted to traverse the huffman tree but the root is null.");
                 return -1;
@@ -911,6 +913,10 @@ int traverse_from_bit_with_huffman() {
             current_bit_offset--;
         }
     } while (!feof(stdin) && !ferror(stdout) && !ferror(stdin));
+    if(!detected_end_block_before_EOB) {
+        fprintf(stderr, "Did not encounter a path toward EOB symbol.\n");
+        return -1;
+    }
     if (ferror(stdin)) {
         fprintf(stderr, "Error reading from stdin\n");
         return -1;
