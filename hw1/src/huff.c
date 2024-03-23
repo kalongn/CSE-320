@@ -1094,16 +1094,15 @@ int validargs(int argc, char **argv) {
         return -1;
     }
     int position_check = 0;
-    while (*argv != NULL) {
-        if (**argv == '-') {
-            *argv += 1; // incremenet the "-a\0" to "a\0"
-
-            // if no flags after dash or the flag contains more then 1 character after the dash
-            if (**argv == '\0' || *((*argv) + 1) != '\0') {
+    char **args = argv;
+    while (*args) {
+        char *arg = *args;
+        if (*arg == '-') {
+            arg++;
+            if (*arg == '\0' || *(arg + 1) != '\0') {
                 return -1;
             }
-
-            switch (**argv) {
+            switch (*arg) {
             case 'h':
                 // if the flag read some other content prior to the h flag, return -1
                 if (validargs_valid_positional_arguments(global_options) || position_check) {
@@ -1133,13 +1132,13 @@ int validargs(int argc, char **argv) {
                 if (validargs_valid_optional_arguments(global_options)) {
                     return -1;
                 }
-                argv++;
+                args++;
                 // if there's not item after -b flag, return -1
-                if (*argv == NULL) {
+                if (*args == NULL) {
                     return -1;
                 }
                 // assuming argv now pointing to the supposingly BLOCKSIZE
-                int temp = stringToInt(*argv);
+                int temp = stringToInt(*args);
                 // if the BLOCKSIZE is not a valid integer, return -1
                 if (temp == -1) {
                     return -1;
@@ -1154,8 +1153,9 @@ int validargs(int argc, char **argv) {
                 position_check = 1;
                 break;
             }
+
         }
-        argv++;
+        args++;
     }
     return 0;
 }
