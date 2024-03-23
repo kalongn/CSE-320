@@ -1094,7 +1094,8 @@ int validargs(int argc, char **argv) {
         return -1;
     }
     int position_check = 0;
-    char **args = argv;
+    int command_detected = 0;
+    char **args = argv + 1;
     while (*args) {
         char *arg = *args;
         if (*arg == '-') {
@@ -1117,6 +1118,7 @@ int validargs(int argc, char **argv) {
                     return -1;
                 }
                 global_options |= 0xffff0002;
+                command_detected = 1;
                 break;
             case 'd':
                 // if the flag read some other content prior to the d flag, return -1
@@ -1125,6 +1127,7 @@ int validargs(int argc, char **argv) {
                     return -1;
                 }
                 global_options |= 0xffff0004;
+                command_detected = 1;
                 break;
             case 'b':
                 // if the b flag came before any of the previous flags, return -1
@@ -1153,7 +1156,11 @@ int validargs(int argc, char **argv) {
                 position_check = 1;
                 break;
             }
-
+        } else {
+            position_check = 1;
+            if (command_detected) {
+                return -1;
+            }
         }
         args++;
     }
