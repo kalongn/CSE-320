@@ -441,19 +441,19 @@ int get_num_nodes_from_two_bytes() {
         return 1;
     }
     if (ferror(stdin)) {
-        fprintf(stderr, "Error: Attempted to read first byte of amount of nodes from description but failed to");
+        fprintf(stderr, "Error: Attempted to read first byte of amount of nodes from description but failed to\n");
         return -1;
     }
     int second_byte = fgetc(stdin);
     if (second_byte == EOF || ferror(stdin)) {
-        fprintf(stderr, "Error: Attempted to read second byte of amount of nodes from description but failed to");
+        fprintf(stderr, "Error: Attempted to read second byte of amount of nodes from description but failed to\n");
         return -1;
     }
 
     num_nodes = (first_byte << 8) | (unsigned char)second_byte;
     // printf("Number of Nodes: %d\n", num_nodes);
     if (num_nodes < 1 || num_nodes >(2 * MAX_SYMBOLS - 1)) {
-        fprintf(stderr, "Error: Invalid number of nodes %d, number of nodes must be within [1, %d]", num_nodes, (2 * MAX_SYMBOLS - 1));
+        fprintf(stderr, "Error: Invalid number of nodes %d, number of nodes must be within [1, %d]\n", num_nodes, (2 * MAX_SYMBOLS - 1));
         return -1;
     }
     return 0;
@@ -473,7 +473,7 @@ int push_node_stack(int *head) {
         // printf("pushed to stack, head: %d\n", *head);
         return 0;
     }
-    fprintf(stderr, "Error: Attempted to push to stack but stack is full when constructing an huffman tree.");
+    fprintf(stderr, "Error: Attempted to push to stack but stack is full when constructing an huffman tree.\n");
     return -1;
 }
 
@@ -505,7 +505,7 @@ int pull_node_proccess_stack(int *head, int back_of_array, int *back_offset) {
         // printf("pulled from stack, head: %d, back_offset: %d\n", *head, *back_offset);
         return 0;
     } else {
-        fprintf(stderr, "Error: Attempted to pull from stack but stack is empty when constructing an huffman tree.");
+        fprintf(stderr, "Error: Attempted to pull from stack but stack is empty when constructing an huffman tree.\n");
         return -1;
     }
 }
@@ -544,7 +544,7 @@ int build_huffman_tree_with_stack() {
         }
     }
     if (feof(stdin) && loop_index_in_bit != 0) {
-        fprintf(stderr, "Error: EOF reached before all nodes were read from stdin.");
+        fprintf(stderr, "Error: EOF reached before all nodes were read from stdin.\n");
         return -1;
     }
     if (ferror(stdin)) {
@@ -613,7 +613,7 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
         loop_counter++;
     }
     if (feof(stdin) && loop_counter != amount_of_leafs) {
-        fprintf(stderr, "Error: Encountered EOF before all leaf nodes were read.");
+        fprintf(stderr, "Error: Encountered EOF before all leaf nodes were read.\n");
         return -1;
     }
     if (ferror(stdin)) {
@@ -622,11 +622,11 @@ int read_leaf_nodes_symbol(int amount_of_leafs) {
     }
 
     if (ff_before) {
-        fprintf(stderr, "Error: Encountered 0xff without 0x00 or 0x(XX) after it. Meaning the file was not compressed probably.");
+        fprintf(stderr, "Error: Encountered 0xff without 0x00 or 0x(XX) after it. Meaning the file was not compressed probably.\n");
         return -1;
     }
     if (!encountered_end_block_symbol) {
-        fprintf(stderr, "Error: Did not encounter end block symbol.");
+        fprintf(stderr, "Error: Did not encounter end block symbol.\n");
         return -1;
     }
     return 0;
@@ -714,7 +714,7 @@ void traverse_downward(NODE *root, unsigned char *counter, unsigned char *buffer
     if (*counter == 8) {
         fputc(*buffer, stdout);
         if (ferror(stdout)) {
-            fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.");
+            fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.\n");
         }
         *counter = 0;
         *buffer = 0;
@@ -745,7 +745,7 @@ int compress_block() {
         character = fgetc(stdin);
         if (character == EOF) {
             if (ferror(stdin)) {
-                fprintf(stderr, "Error: Invalid Read toward stdin or encounter read error.");
+                fprintf(stderr, "Error: Invalid Read toward stdin or encounter read error.\n");
                 return -1;
             }
         } else {
@@ -803,7 +803,7 @@ int compress_block() {
     // print_huffman_tree_in_post_order(nodes);
     // // print_nodes_weight();
     if (ferror(stdout)) {
-        fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.");
+        fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.\n");
         return -1;
     }
     emit_huffman_tree(); // emit the description of the tree
@@ -835,7 +835,7 @@ int compress_block() {
         buffer = buffer << (8 - counter);
         fputc(buffer, stdout);
         if (ferror(stdout)) {
-            fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.");
+            fprintf(stderr, "Error: Standard output is faulty and cannot be write at this moment, Please verify output file.\n");
             return -1;
         }
     }
@@ -897,7 +897,7 @@ int traverse_from_bit_with_huffman() {
         character = fgetc(stdin);
         if (character == EOF) {
             if (ferror(stdin)) {
-                fprintf(stderr, "Error: Invalid Read toward stdin or encounter read error.");
+                fprintf(stderr, "Error: Invalid Read toward stdin or encounter read error.\n");
                 return -1;
             }
             break;
@@ -909,7 +909,7 @@ int traverse_from_bit_with_huffman() {
             // printf("%d -> %p\n", current_bit, pointer_to_node);
             switch (node_address_for_traversal(current_bit, &pointer_to_node, &detected_end_block_before_EOB)) {
             case -3:
-                fprintf(stderr, "Error: Attempted to traverse the huffman tree but the root is null.");
+                fprintf(stderr, "Error: Attempted to traverse the huffman tree but the root is null.\n");
                 return -1;
             case -2:
                 return 0;
@@ -990,7 +990,7 @@ int compress() {
     int block_size = determine_block_size_from_global();
     // check just in case
     if (block_size < MIN_BLOCK_SIZE || block_size > MAX_BLOCK_SIZE) {
-        fprintf(stderr, "Error: Invalid block size %d, block size must be within bytes (range [1024, 65536])", block_size);
+        fprintf(stderr, "Error: Invalid block size %d, block size must be within bytes (range [1024, 65536])\n", block_size);
         return -1;
     }
     // Loop until we read EOF
