@@ -556,6 +556,83 @@ int build_huffman_tree_with_stack() {
 }
 
 /**
+ * @brief Identify the leaf nodes of the huffman tree by traversing the huffman tree in pre-order.
+ *
+ * @param root
+ *      the root of the huffman tree.
+ * @param current_index_nodes_symbol
+ *      the current index of the nodes_symbol array.
+ */
+void identify_leaf_nodes_stack(NODE *root, int *current_index_nodes_symbol) {
+    if (root == NULL) {
+        return;
+    }
+    if (root->left == NULL && root->right == NULL) {
+        *(node_for_symbol + *current_index_nodes_symbol) = root;
+        (*current_index_nodes_symbol)++;
+    }
+    identify_leaf_nodes_stack(root->left, current_index_nodes_symbol);
+    identify_leaf_nodes_stack(root->right, current_index_nodes_symbol);
+}
+
+/**
+ * @brief Retrieve all the leafs symbol for all leaf nodes
+ *
+ * @param amount_of_leafs
+ *      the amount of leaf nodes.
+ * @return int
+ *      -1 indicated a point of failure (error message is printed to stderr). 0 meaning function executed without problem.
+ */
+int read_leaf_nodes_symbol(int amount_of_leafs) {
+    int character;
+    int loop_counter = 0;
+    int ff_before = 0;
+    int encountered_end_block_symbol = 0;
+    while (!feof(stdin) && !ferror(stdin) && loop_counter < amount_of_leafs) {
+        character = fgetc(stdin);
+        // printf("character: %d, loop_index: %d\n", (unsigned char)character, loop_counter);
+        // printf("character: %d\n", (unsigned char)character == 0xff);
+        if ((unsigned char)character == 0xff && !ff_before) {
+            // printf("ff symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
+            ff_before = 1;
+            continue;
+        }
+        if (ff_before && (unsigned char)character == 0x00) {
+            (*(node_for_symbol + loop_counter))->symbol = 256;
+            // printf("256 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
+            ff_before = 0;
+            encountered_end_block_symbol = 1;
+        } else if (ff_before) {
+            (*(node_for_symbol + loop_counter))->symbol = 255;
+            // printf("255 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
+            ff_before = 0;
+        } else {
+            (*(node_for_symbol + loop_counter))->symbol = (unsigned char)character;
+            // printf("regular character: %d\n", (*(node_for_symbol + loop_counter))->symbol);
+        }
+        loop_counter++;
+    }
+    if (feof(stdin) && loop_counter != amount_of_leafs) {
+        fprintf(stderr, "Error: Encountered EOF before all leaf nodes were read.");
+        return -1;
+    }
+    if (ferror(stdin)) {
+        fprintf(stderr, "Error reading from stdin\n");
+        return -1;
+    }
+
+    if (ff_before) {
+        fprintf(stderr, "Error: Encountered 0xff without 0x00 or 0x(XX) after it. Meaning the file was not compressed probably.");
+        return -1;
+    }
+    if (!encountered_end_block_symbol) {
+        fprintf(stderr, "Error: Did not encounter end block symbol.");
+        return -1;
+    }
+    return 0;
+}
+
+/**
  * @brief Reads a description of a Huffman tree and reconstructs the tree from
  * the description.
  * @details  This function reads, from the standard input, the description of a
@@ -569,6 +646,7 @@ int build_huffman_tree_with_stack() {
  */
 int read_huffman_tree() {
     int return_code = get_num_nodes_from_two_bytes();
+    debug("get_num_nodes_from_two_bytes return_code: %d, num_nodes: %d\n", return_code, num_nodes);
     if (return_code == -1) {
         return -1;
     }
@@ -577,6 +655,13 @@ int read_huffman_tree() {
     }
 
     if (build_huffman_tree_with_stack()) {
+        return -1;
+    }
+
+    int current_index_nodes_symbol = 0;
+    identify_leaf_nodes_stack(nodes, &current_index_nodes_symbol);
+    // debug("Loop_index: %d\n", current_index_nodes_symbol);
+    if (read_leaf_nodes_symbol(current_index_nodes_symbol)) {
         return -1;
     }
     return 0;
@@ -767,82 +852,6 @@ int compress_block() {
 // ----------------------------------- HUFFMAN DECOMPRESS_BLOCKS METHOD -----------------------------------
 
 /**
- * @brief Identify the leaf nodes of the huffman tree by traversing the huffman tree in pre-order.
- *
- * @param root
- *      the root of the huffman tree.
- * @param current_index_nodes_symbol
- *      the current index of the nodes_symbol array.
- */
-void identify_leaf_nodes_stack(NODE *root, int *current_index_nodes_symbol) {
-    if (root == NULL) {
-        return;
-    }
-    if (root->left == NULL && root->right == NULL) {
-        *(node_for_symbol + *current_index_nodes_symbol) = root;
-        (*current_index_nodes_symbol)++;
-    }
-    identify_leaf_nodes_stack(root->left, current_index_nodes_symbol);
-    identify_leaf_nodes_stack(root->right, current_index_nodes_symbol);
-}
-
-/**
- * @brief Retrieve all the leafs symbol for all leaf nodes
- *
- * @param amount_of_leafs
- *      the amount of leaf nodes.
- * @return int
- *      -1 indicated a point of failure (error message is printed to stderr). 0 meaning function executed without problem.
- */
-int read_leaf_nodes_symbol(int amount_of_leafs) {
-    int character;
-    int loop_counter = 0;
-    int ff_before = 0;
-    int encountered_end_block_symbol = 0;
-    while (!feof(stdin) && !ferror(stdin) && loop_counter < amount_of_leafs) {
-        character = fgetc(stdin);
-        // printf("character: %d, loop_index: %d\n", (unsigned char)character, loop_counter);
-        // printf("character: %d\n", (unsigned char)character == 0xff);
-        if ((unsigned char)character == 0xff && !ff_before) {
-            // printf("ff symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
-            ff_before = 1;
-            continue;
-        }
-        if (ff_before && (unsigned char)character == 0x00) {
-            (*(node_for_symbol + loop_counter))->symbol = 256;
-            // printf("256 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
-            ff_before = 0;
-            encountered_end_block_symbol = 1;
-        } else if (ff_before) {
-            (*(node_for_symbol + loop_counter))->symbol = 255;
-            // printf("255 symbol: %d\n", (*(node_for_symbol + loop_counter))->symbol);
-            ff_before = 0;
-        } else {
-            (*(node_for_symbol + loop_counter))->symbol = (unsigned char)character;
-            // printf("regular character: %d\n", (*(node_for_symbol + loop_counter))->symbol);
-        }
-        loop_counter++;
-    }
-    if (feof(stdin) && loop_counter != amount_of_leafs) {
-        fprintf(stderr, "Error: Encountered EOF before all leaf nodes were read.");
-        return -1;
-    }
-    if (ferror(stdin)) {
-        fprintf(stderr, "Error reading from stdin\n");
-        return -1;
-    }
-
-    if (ff_before) {
-        fprintf(stderr, "Error: Encountered 0xff without 0x00 or 0x(XX) after it. Meaning the file was not compressed probably.");
-        return -1;
-    }
-    if (!encountered_end_block_symbol) {
-        fprintf(stderr, "Error: Did not encounter end block symbol.");
-        return -1;
-    }
-    return 0;
-}
-/**
  * @brief determine which direction to travel to from root given the direction provided (should be either 0 or 1).
  *
  * @param direction
@@ -948,18 +957,12 @@ int traverse_from_bit_with_huffman() {
  */
 int decompress_block() {
     int return_code = read_huffman_tree();
+    debug("read_huffman_tree return_code: %d\n", return_code);
     if (return_code == -1) {
         return -1;
     }
     if (return_code == 1) {
-        return 0;
-    }
-
-    int current_index_nodes_symbol = 0;
-    identify_leaf_nodes_stack(nodes, &current_index_nodes_symbol);
-    // debug("Loop_index: %d\n", current_index_nodes_symbol);
-    if (read_leaf_nodes_symbol(current_index_nodes_symbol)) {
-        return -1;
+        return 1;
     }
 
     if (traverse_from_bit_with_huffman()) {
@@ -1015,7 +1018,6 @@ int compress() {
  * @return 0 if decompression completes without error, -1 if an error occurs.
  */
 int decompress() {
-    // Loop until we read EOF
     while (!feof(stdin) && !ferror(stdin)) {
         if (decompress_block() == -1) {
             return -1;
