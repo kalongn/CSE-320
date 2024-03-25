@@ -34,6 +34,8 @@
  * YOU WILL GET A ZERO!
  */
 
+static int error_flag = 0;
+
 // ----------------------------------- DEBUG METHOD -----------------------------------
 
 /**
@@ -648,6 +650,7 @@ int read_huffman_tree() {
     int return_code = get_num_nodes_from_two_bytes();
     debug("get_num_nodes_from_two_bytes return_code: %d, num_nodes: %d\n", return_code, num_nodes);
     if (return_code == -1) {
+        error_flag = 1;
         return -1;
     }
     if (return_code == 1) {
@@ -655,6 +658,7 @@ int read_huffman_tree() {
     }
 
     if (build_huffman_tree_with_stack()) {
+        error_flag = 1;
         return -1;
     }
 
@@ -662,6 +666,7 @@ int read_huffman_tree() {
     identify_leaf_nodes_stack(nodes, &current_index_nodes_symbol);
     // debug("Loop_index: %d\n", current_index_nodes_symbol);
     if (read_leaf_nodes_symbol(current_index_nodes_symbol)) {
+        error_flag = 1;
         return -1;
     }
     return 0;
@@ -958,17 +963,13 @@ int traverse_from_bit_with_huffman() {
 int decompress_block() {
     int return_code = read_huffman_tree();
     debug("read_huffman_tree return_code: %d\n", return_code);
-    if (return_code == -1) {
+    if (return_code) {
         return -1;
     }
-    if (return_code == 1) {
-        return 1;
-    }
-
     if (traverse_from_bit_with_huffman()) {
+        error_flag = 1;
         return -1;
     }
-
     return 0;
 }
 
@@ -1019,7 +1020,7 @@ int compress() {
  */
 int decompress() {
     while (!feof(stdin) && !ferror(stdin)) {
-        if (decompress_block() == -1) {
+        if (decompress_block() && error_flag) {
             return -1;
         }
     }
