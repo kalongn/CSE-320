@@ -36,29 +36,6 @@ In this document, we use `huff.c` as our example file containing helper function
 
 # Getting Started
 
-Fetch base code for `hw1` as described in `hw0`. You can find it at this link:
-[https://gitlab02.cs.stonybrook.edu/cse320/hw1](https://gitlab02.cs.stonybrook.edu/cse320/hw1).
-**IMPORTANT: 'FETCH AND MERGE', DO NOT 'CLONE'.**
-
-Both repos will probably have a file named `.gitlab-ci.yml` with different contents.
-Simply merging these files will cause a merge conflict. To avoid this, we will
-merge the repos using a flag so that the `.gitlab-ci.yml` found in the `hw1`
-repo will be the file that is preserved.
-To merge, use this command:
-
-```
-git merge -m "Merging HW1_CODE" HW1_CODE/master --strategy-option=theirs
-```
-
-> :scream: Based on past experience, many students will either ignore the above command or forget
-> to use it.  The result will be a **merge conflict**, which will be reported by git.
-> Once a merge conflict has been reported, it is essential to correct it before committing
-> (or to abort the merge without committing -- use `git merge --abort` and go back and try again),
-> because git will have inserted markers into the files involved indicating the locations of the
-> conflicts, and if you ignore this and commit anyway, you will end up with corrupted files.
-> You should consider it important to read up at an early stage on merge conflicts with git and
-> how to resolve them properly.
-
 Here is the structure of the base code:
 
 <pre>
@@ -85,30 +62,6 @@ Here is the structure of the base code:
 - The `.gitignore` file is a file that tells `git` to ignore files with names
 matching specified patterns, so that they don't accidentally end up getting
 committed to the repository.
-
-- The `.gitlab-ci.yml` file is a file that specifies "continuous integration" testing
-to be performed by the GitLab server each time you push a commit.  Usually it will
-be configured to check that your code builds and runs, and that any provided unit tests
-are passed.  You are free to change this file if you like.
-
-> :scream:  The CI testing is for your own information; it does not directly have
-> anything to do with assignment grading or whether your commit has been properly
-> pushed to the server.  If some part of the testing fails, you will see the somewhat
-> misleading message "commit failed" on the GitLab web interface.
-> This does **not** mean that "your attempt to commit has failed" or that "your commit
-> didn't get pushed to the server"; the very fact that the testing was triggered at
-> all means that you successfully pushed a commit.  Rather, it means that "the CI tests
-> performed on a commit that you pushed did not succeed".  The purpose of the tests are
-> to alert you to possible problems with your code; if you see that testing has failed
-> it is worth investigating why that has happened.  However, the tests can sometimes
-> fail for reasons that are not your fault; for example, the entire CI "runner" system
-> may fail if someone submits code that fills up the system disk.  You should definitely
-> try to understand why the tests have failed if they do, but it is not necessary to be
-> overly obsessive about them.
-
-- The `hw1.sublime-project` file is a "project file" for use by the Sublime Text editor.
-It is included to try to help Sublime understand the organization of the project so that
-it can properly identify errors as you edit your code.
 
 - The `Makefile` is a configuration file for the `make` build utility, which is what
 you should use to compile your code.  In brief, `make` or `make all` will compile
