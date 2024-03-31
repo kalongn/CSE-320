@@ -1,5 +1,6 @@
 bin/
 build/
+hw1-test-output
 *~
 *.out
 *.au
