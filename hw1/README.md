@@ -41,9 +41,7 @@ Here is the structure of the base code:
 <pre>
 .
 ├── .gitignore
-├── .gitlab-ci.yml
 └── hw1
-    ├── hw1.sublime-project
     ├── include
     │   ├── debug.h
     │   ├── global.h
