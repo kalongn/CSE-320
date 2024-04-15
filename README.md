@@ -5,4 +5,5 @@ This class is about embeded system development. We will be using the following l
 ## HW Concepts   
 1. HW1 -> Huffman tree, encoding and decoding file, Fundamental of C programming
 2. HW2 -> Audio Encoding, Debugging and Optimization on an old homework.
+3. HW3 -> Dynamic Allocator, Creating a Simple Allocator given framework and policy.
 
