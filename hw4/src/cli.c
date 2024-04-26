@@ -453,7 +453,7 @@ void start_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *
             free(new_path);
         }
         // execute the execute
-        if (execvpe(daemon->execute_name, daemon->daemon_argv, environ) == -1) {
+        if (execvpe(daemon->execute_name, daemon->execute_argv, environ) == -1) {
             perror(strerror(errno));
             print_error_child(out, "ERROR: execvpe returned indicate a failure of process.");
             abort();
