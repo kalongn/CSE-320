@@ -101,13 +101,16 @@ void free_daemon_node(sf_daemon **daemon, sf_daemon **prev_daemon) {
  * @brief Free the entire list of the linked_list, also send SIGKILL to every process.
  *
  */
-void free_daemon_list(sigset_t *mask_stop) {
+void free_daemon_list(sigset_t *mask_stop, sigset_t *mask_child, sigset_t *prev_mask) {
     sf_daemon *prev = NULL; // the freeing order will just free from left to right of linkedlist
     while (daemon_list.length > 0) {
         sf_daemon *current_free = daemon_list.first;
         if (current_free->status == status_active) {
             sf_stop(current_free->name, current_free->pid);
             current_free->status = status_stopping;
+            if (sigprocmask(SIG_BLOCK, mask_child, prev_mask) < 0) {
+                return;
+            }
             kill(current_free->pid, SIGTERM);
             recieved_alarm = false;
             alarm(CHILD_TIMEOUT);
@@ -122,6 +125,9 @@ void free_daemon_list(sigset_t *mask_stop) {
             alarm(0);
             if (test == -1) {
                 goto kill;
+            }
+            if (sigprocmask(SIG_SETMASK, prev_mask, NULL) < 0) {
+                return;
             }
             if (WIFEXITED(status)) {
                 int exit_status = WEXITSTATUS(status);
@@ -143,7 +149,7 @@ void free_daemon_list(sigset_t *mask_stop) {
  * It is not Free. Will every dynamically allocated pointer to NULL after free for safety reason
  *
  */
-void free_dynamic(sigset_t *mask_stop) {
+void free_dynamic(sigset_t *mask_stop, sigset_t *mask_child, sigset_t *mask_prev) {
     if (legion_argv != NULL) {
         free(legion_argv);
         legion_argv = NULL;
@@ -152,7 +158,7 @@ void free_dynamic(sigset_t *mask_stop) {
         free(daemon_argv);
         daemon_argv = NULL;
     }
-    free_daemon_list(mask_stop);
+    free_daemon_list(mask_stop, mask_child, mask_prev);
 }
 
 /**
@@ -453,7 +459,7 @@ void start_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *
             free(new_path);
         }
         // execute the execute
-        if (execvpe(daemon->execute_name, daemon->execute_argv, environ) == -1) {
+        if (execvpe(daemon->execute_name, daemon->execute_argv, __environ) == -1) {
             perror(strerror(errno));
             print_error_child(out, "ERROR: execvpe returned indicate a failure of process.");
             abort();
@@ -498,7 +504,7 @@ void start_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *
  * @param stop_mask
  *      the mask we used to temporarily block out all SIGNALS beside SIGALRM and SIGCHLD
  */
-void stop_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *stop_mask) {
+void stop_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *stop_mask, sigset_t *child_mask, sigset_t *prev_mask) {
     if (daemon->status == status_exited || daemon->status == status_crashed) {
         daemon->status = status_inactive;
         sf_reset(daemon->name);
@@ -512,6 +518,10 @@ void stop_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *s
     sf_stop(daemon->name, daemon->pid);
     daemon->status = status_stopping;
     int status = 0;
+    if (sigprocmask(SIG_BLOCK, child_mask, prev_mask) < 0) {
+        print_error_parent(out, "ERROR: couldn't install a mask sigchld when about to start child process.", current_status);
+        return;
+    }
     kill(daemon->pid, SIGTERM);
     recieved_alarm = false;
     alarm(CHILD_TIMEOUT);
@@ -528,6 +538,10 @@ void stop_daemon(sf_daemon *daemon, bool *current_status, FILE *out, sigset_t *s
     alarm(0);
     if (test == -1) {
         goto kill;
+    }
+    if (sigprocmask(SIG_SETMASK, prev_mask, NULL) < 0) {
+        print_error_parent(out, "ERROR: couldn't install a mask sigchld when about to start child process.", current_status);
+        return;
     }
     if (WIFEXITED(status)) {
         int exit_status = WEXITSTATUS(status);
@@ -791,7 +805,7 @@ void run_cli(FILE *in, FILE *out) {
                     current_status = false;
                     break;
                 }
-                stop_daemon(current_daemon, &current_status, out, &mask_stop);
+                stop_daemon(current_daemon, &current_status, out, &mask_stop, &mask_sigchld, &mask_prev);
                 break;
             }
             case LOGROTATE_COMMAND: {
@@ -875,7 +889,7 @@ void run_cli(FILE *in, FILE *out) {
                 }
                 if (current_daemon->status == status_active) {
                     recieved_alarm = false;
-                    stop_daemon(current_daemon, &current_status, out, &mask_stop);
+                    stop_daemon(current_daemon, &current_status, out, &mask_stop, &mask_sigchld, &mask_prev);
                     if (!current_status) {
                         break;
                     }
@@ -916,5 +930,5 @@ void run_cli(FILE *in, FILE *out) {
             }
         }
     }
-    free_dynamic(&mask_stop);
+    free_dynamic(&mask_stop, &mask_sigchld, &mask_prev);
 }
