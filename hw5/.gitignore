@@ -1,0 +1,7 @@
+bin/
+build/
+*~
+*.out
+*.bak
+*.o
+*.d
