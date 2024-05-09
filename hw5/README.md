@@ -669,3 +669,7 @@ Each entry will contain a notice or message to be sent over the wire
 to the client.  In addition, when a message is sent, a delivery
 notification needs to be generated and enqueued in the sender's
 mailbox.
+
+### NOTE TO SELF
+Run the non-blackbox tests by deleting the tests/charla_tests.c file, running "make clean all" to compile the code, and then doing "bin/charla_tests -j1 --verbose".    
+Run the blackbox tests by deleting all the .c files in the tests directory except for tests/charla_tests.c, running "make clean all" to compile the code, and then doing "bin/charla_tests -j9 --verbose"
