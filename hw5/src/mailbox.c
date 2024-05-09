@@ -70,6 +70,7 @@ void mb_set_discard_hook(MAILBOX *mb, MAILBOX_DISCARD_HOOK *function) {
         error("passed in NULL mb into mb_set_discard_hook");
         return;
     }
+    debug("FUNCTION CHANGED.");
     pthread_mutex_lock(&(mb->mailbox_mutex));
     mb->hook_function = function;
     pthread_mutex_unlock(&(mb->mailbox_mutex));
@@ -108,6 +109,29 @@ void mb_unref(MAILBOX *mb, char *why) {
     mb->ref_count--;
     if (mb->ref_count == 0) {
         info("mailbox %p is now being free.", mb);
+        MAILBOX **need_to_unref = NULL;
+        int counter = 0;
+        MAILBOX_NODE *cursor = mb->dummyNode->links.next;
+        while (cursor != mb->dummyNode) {
+            if (mb->hook_function != NULL) {
+                if (mb == cursor->entry->content.message.from) {
+                    cursor->entry->content.message.from = NULL;
+                }
+                mb->hook_function(cursor->entry);
+            }
+            if (cursor->entry->type == MESSAGE_ENTRY_TYPE && cursor->entry->content.message.from != NULL) {
+                counter++;
+                need_to_unref = realloc(need_to_unref, sizeof(MAILBOX *) * counter);
+                need_to_unref[counter - 1] = cursor->entry->content.message.from;
+                if (cursor->entry->content.message.body != NULL) {
+                    free(cursor->entry->content.message.body);
+                }
+            }
+            free(cursor->entry);
+            MAILBOX_NODE *delete_node = cursor;
+            cursor = cursor->links.next;
+            free(delete_node);
+        }
         free(mb->handle);
         debug("SANITY CHECK: %d", mb->dummyNode->links.next == mb->dummyNode);
         free(mb->dummyNode);
@@ -115,6 +139,10 @@ void mb_unref(MAILBOX *mb, char *why) {
         pthread_mutex_unlock(&(mb->mailbox_mutex));
         pthread_mutex_destroy(&(mb->mailbox_mutex));
         free(mb);
+        for (int i = 0; i < counter; i++) {
+            mb_unref(need_to_unref[i], "mailbox is being free.");
+        }
+        free(need_to_unref);
     } else {
         pthread_mutex_unlock(&(mb->mailbox_mutex));
     }
@@ -184,17 +212,7 @@ void mb_add_message(MAILBOX *mb, int msgid, MAILBOX *from, void *body, int lengt
     new_message->type = MESSAGE_ENTRY_TYPE;
     new_message->content.message.msgid = msgid;
     new_message->content.message.from = from;
-    char *new_body = calloc(1, ntohl(length));
-    if (new_body == NULL) {
-        error("cannot malloc a new body object in mb_add_message.");
-        if (mb != from) {
-            mb_unref(from, "senders mailbox refer decreased in mb_add_message.");
-        }
-        free(new_message);
-        return;
-    }
-    memcpy(new_body, body, ntohl(length));
-    new_message->content.message.body = (void *)new_body;
+    new_message->content.message.body = (void *)body;
     new_message->content.message.length = length;
     if (!mb_enqueue_entry(mb, new_message)) {
         if (mb != from) {
