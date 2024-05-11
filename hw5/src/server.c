@@ -42,6 +42,7 @@ void *chla_client_service(void *arg) {
         }
         switch (packet->type) {
         case CHLA_LOGIN_PKT: {
+            // TODO: modified this to use strtok_r to parse \r\n instead of the subtraction reach result in lost of points.
             payload_length -= 2; // removed the \r\n termination sequence
             if (payload_length <= 0) {
                 debug("No login username.");
